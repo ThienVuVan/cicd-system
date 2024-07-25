@@ -1,0 +1,43 @@
+version: '3.6'
+
+networks:
+  emarket-net-backend:
+    driver: bridge
+    name: emarket-net-backend
+
+services:
+  app:
+    image: vvthienregistry.azurecr.io/emark-be-dev:latest
+    container_name: emarket-backend
+    restart: unless-stopped
+    ports:
+      - '8081:8081'
+    volumes:
+      - ./data/images/:/app/public/
+    networks:
+      - emarket-net-backend
+    depends_on:
+      - db
+    env_file: .env
+
+  db:
+    image: mysql:latest
+    container_name: emarket-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      # MYSQL_USER: ${MYSQL_USER}
+      # MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - ./db/:/var/lib/mysql/
+      # - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - emarket-net-backend
+    env_file: .env
+    expose:
+      - '3306'
+
+
+
+

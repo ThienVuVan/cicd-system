@@ -1,0 +1,3 @@
+include:
+  - project: emark/emarket-ops
+    file: /backend/.gitlab-ci.yml

@@ -1,0 +1,72 @@
+version: '3.6'
+
+networks:
+  logging:
+    driver: bridge
+    name: logging
+
+services:
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+    container_name: elasticsearch
+    environment:
+      - ELASTIC_PASSWORD=Thien2410VV
+      - KIBANA_PASSWORD=kibanapass
+      - discovery.type=single-node
+      - cluster.name=elasticsearch
+      - bootstrap.memory_lock=true
+      - xpack.security.http.ssl.enabled=false
+      - cluster.routing.allocation.disk.threshold_enabled=false
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+    ports:
+      - "9200:9200"
+    # volumes:
+    #   - ./data:/usr/share/elasticsearch/data
+    networks:
+      - logging
+
+    
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.3
+    container_name: kibana
+    environment:
+      SERVER_NAME: kibana
+      ELASTICSEARCH_HOSTS: '["http://elasticsearch:9200"]'
+      ELASTICSEARCH_USERNAME: kibana_system
+      ELASTICSEARCH_PASSWORD: kibanapass
+      TELEMETRY_ENABLED: false
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - logging
+
+
+  # logstash:
+  #   image: docker.elastic.co/logstash/logstash:8.12.2
+  #   container_name: logstash
+  #   command:
+  #     - /bin/bash
+  #     - -c
+  #     - |
+  #       echo "Waiting for Elasticsearch availability";
+  #       until curl -s http://elasticsearch:9200 | grep -q "missing authentication credentials"; do sleep 1; done;
+  #       echo "Starting logstash";
+  #       /usr/share/logstash/bin/logstash -f /usr/share/logstash/pipeline/logstash.conf
+  #   volumes:
+  #     - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+  #   ports:
+  #     - '5044:5044'
+  #   environment:
+  #     - xpack.monitoring.enabled=false
+  #     - ELASTIC_USER=elastic
+  #     - ELASTIC_PASSWORD=myelasticpass
+  #     - ELASTIC_HOSTS=http://elasticsearch:9200
+  #   depends_on:
+  #     - elasticsearch
+  #   networks:
+  #     - logging
+
+
+

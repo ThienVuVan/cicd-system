@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  annotations:
+    pv.kubernetes.io/provisioned-by: blob.csi.azure.com
+  name: pv-blob-production
+spec:
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  storageClassName: azureblob-nfs-premium
+  mountOptions:
+    - nconnect=4
+  csi:
+    driver: blob.csi.azure.com
+    volumeHandle: pv-001
+    volumeAttributes:
+      resourceGroup: 
+      storageAccount: 
+      containerName: 
+      protocol: nfs

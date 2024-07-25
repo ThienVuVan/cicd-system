@@ -1,0 +1,17 @@
+.DS_Store
+node_modules
+Dockerfile
+.dockerignore
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+data
+.docker
+!.docker/data/db/.gitkeep

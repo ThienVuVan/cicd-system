@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emark-fe-deployment
+  namespace: staging
+  labels:
+    app: emark-fe
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emark-fe
+  template:
+    metadata:
+      labels:
+        app: emark-fe
+    spec:
+      containers:
+      - name: emark-fe
+        image: 
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+          name: emark-fe-port
+        envFrom:
+        - configMapRef:
+            name: emark-configmap
+        - secretRef:
+            name: app-secrets
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emark-fe-service
+  namespace: staging
+spec:
+  selector:
+    app: emark-fe
+  ports:
+    - protocol: TCP
+      port: 3000
+      targetPort: emark-fe-port

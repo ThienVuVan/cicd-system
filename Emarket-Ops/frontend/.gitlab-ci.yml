@@ -1,0 +1,177 @@
+variables:
+  HARBOR_STG: registry.thienvuvan.io.vn/emarket/emark-fe-stg
+  HARBOR_PRD: registry.thienvuvan.io.vn/emarket/emark-fe-prd
+
+  IMAGE_DEV: vvthienregistry.azurecr.io/emark-fe-dev
+  IMAGE_STG: vvthienregistry.azurecr.io/emark-fe-stg
+  IMAGE_PRD: vvthienregistry.azurecr.io/emark-fe-prd
+
+  USER_DEV: root
+  USER_BASTION: sysadmin
+  DEV_SERVER: 139.59.229.65
+  BASTION_SERVER: 52.231.106.248
+
+  DEVOPS_FOLDER_RUNNER: /home/gitlab-runner/emarket-ops/frontend
+  DEVOPS_FOLDER_DEV: /home/emarket/emarket-ops/frontend
+  DEVOPS_FOLDER_STG: /home/sysadmin/emarket-ops/k8s-staging
+  DEVOPS_FOLDER_PRD: /home/sysadmin/emarket-ops/k8s-production
+
+stages:
+  - build
+  - release
+  - deploy
+
+### Build ###
+.build:
+  stage: build
+  before_script:
+    - az login --service-principal --username $AZURE_CLIENT_ID_READ --password $AZURE_CLIENT_SECRET_READ --tenant $AZURE_TENANT_ID
+    - az acr login --name vvthienregistry
+    - cd $DEVOPS_FOLDER_RUNNER
+    - git pull origin main
+
+build-develop:
+  extends: .build
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "develop"'
+  script:
+    - docker pull $IMAGE_DEV:latest || true
+    - docker build --cache-from $IMAGE_DEV:latest -t $IMAGE_DEV:$CI_COMMIT_SHA --target develop -f $DEVOPS_FOLDER_RUNNER/Dockerfile $CI_PROJECT_DIR
+    - docker push $IMAGE_DEV:$CI_COMMIT_SHA
+    - docker image rm -f $IMAGE_DEV:latest
+    - docker image rm -f $IMAGE_DEV:$CI_COMMIT_SHA
+  
+build-staging:
+  extends: .build
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "staging"'
+  script:
+    - docker pull $IMAGE_STG:latest || true
+    - docker build --cache-from $IMAGE_STG:latest -t $IMAGE_STG:$CI_COMMIT_SHA --target staging -f $DEVOPS_FOLDER_RUNNER/Dockerfile $CI_PROJECT_DIR
+    - docker push $IMAGE_STG:$CI_COMMIT_SHA
+    - docker image rm -f $IMAGE_STG:latest
+    - docker image rm -f $IMAGE_STG:$CI_COMMIT_SHA
+
+build-production:
+  extends: .build
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "main"'
+  script:
+    - docker pull $IMAGE_PRD:latest || true
+    - docker build --cache-from $IMAGE_PRD:latest -t $IMAGE_PRD:$CI_COMMIT_SHA --target production -f $DEVOPS_FOLDER_RUNNER/Dockerfile $CI_PROJECT_DIR
+    - docker push $IMAGE_PRD:$CI_COMMIT_SHA
+    - docker image rm -f $IMAGE_PRD:latest
+    - docker image rm -f $IMAGE_PRD:$CI_COMMIT_SHA
+
+### Release ###
+.release:
+  stage: release
+  variables:
+    GIT_STRATEGY: none
+  before_script:
+    - az login --service-principal --username $AZURE_CLIENT_ID_READ --password $AZURE_CLIENT_SECRET_READ --tenant $AZURE_TENANT_ID
+    - az acr login --name vvthienregistry
+    - docker login -u $REGISTRY_USER -p $REGISTRY_PASSWORD $REGISTRY
+
+release-develop:
+  extends: .release
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG_MESSAGE == "develop"'
+  script:
+    - docker pull $IMAGE_DEV:$CI_COMMIT_SHA
+    - docker tag $IMAGE_DEV:$CI_COMMIT_SHA $IMAGE_DEV:$CI_COMMIT_TAG
+    - docker tag $IMAGE_DEV:$CI_COMMIT_SHA $IMAGE_DEV:latest
+    - docker push $IMAGE_DEV:$CI_COMMIT_TAG
+    - docker push $IMAGE_DEV:latest
+    - docker image rm -f $IMAGE_DEV:$CI_COMMIT_SHA
+    - docker image rm -f $IMAGE_DEV:$CI_COMMIT_TAG
+    - docker image rm -f $IMAGE_DEV:latest
+
+release-staging:
+  extends: .release
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG_MESSAGE == "staging"'
+  script:
+    - docker pull $IMAGE_STG:$CI_COMMIT_SHA
+    - docker tag $IMAGE_STG:$CI_COMMIT_SHA $IMAGE_STG:$CI_COMMIT_TAG
+    - docker tag $IMAGE_STG:$CI_COMMIT_SHA $IMAGE_STG:latest
+    - docker tag $IMAGE_STG:$CI_COMMIT_SHA $HARBOR_STG:$CI_COMMIT_TAG
+    - docker tag $IMAGE_STG:$CI_COMMIT_SHA $HARBOR_STG:latest
+    - docker push $IMAGE_STG:$CI_COMMIT_TAG
+    - docker push $IMAGE_STG:latest
+    - docker push $HARBOR_STG:$CI_COMMIT_TAG
+    - docker push $HARBOR_STG:latest
+    - docker image rm -f $IMAGE_STG:$CI_COMMIT_SHA
+    - docker image rm -f $IMAGE_STG:$CI_COMMIT_TAG
+    - docker image rm -f $IMAGE_STG:latest
+    - docker image rm -f $HARBOR_STG:$CI_COMMIT_TAG
+    - docker image rm -f $HARBOR_STG:latest
+
+release-production:
+  extends: .release
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG_MESSAGE == "main"'
+  script:
+    - docker pull $IMAGE_PRD:$CI_COMMIT_SHA
+    - docker tag $IMAGE_PRD:$CI_COMMIT_SHA $IMAGE_PRD:$CI_COMMIT_TAG
+    - docker tag $IMAGE_PRD:$CI_COMMIT_SHA $IMAGE_PRD:latest
+    - docker tag $IMAGE_PRD:$CI_COMMIT_SHA $HARBOR_PRD:$CI_COMMIT_TAG
+    - docker tag $IMAGE_PRD:$CI_COMMIT_SHA $HARBOR_PRD:latest
+    - docker push $IMAGE_PRD:$CI_COMMIT_TAG
+    - docker push $IMAGE_PRD:latest
+    - docker push $HARBOR_PRD:$CI_COMMIT_TAG
+    - docker push $HARBOR_PRD:latest
+    - docker image rm -f $IMAGE_PRD:$CI_COMMIT_SHA
+    - docker image rm -f $IMAGE_PRD:$CI_COMMIT_TAG
+    - docker image rm -f $IMAGE_PRD:latest
+    - docker image rm -f $HARBOR_PRD:$CI_COMMIT_TAG
+    - docker image rm -f $HARBOR_PRD:latest
+
+### Deployment ###
+deploy-develop:
+  stage: deploy
+  variables:
+    GIT_STRATEGY: none
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "develop" && $GITLAB_USER_LOGIN == "thienvu"'
+  script:
+    - ssh -oStrictHostKeyChecking=no $USER_DEV@$DEV_SERVER "
+      cd $DEVOPS_FOLDER_DEV &&
+      docker compose -f docker-compose.dev.yml down || true &&
+      docker image rm -f $IMAGE_DEV:latest || true &&
+      git pull origin main &&
+      az login --service-principal --username $AZURE_CLIENT_ID_READ --password $AZURE_CLIENT_SECRET_READ --tenant $AZURE_TENANT_ID &&
+      az acr login --name vvthienregistry &&
+      docker pull $IMAGE_DEV:$CI_COMMIT_SHA &&
+      docker tag $IMAGE_DEV:$CI_COMMIT_SHA $IMAGE_DEV:latest &&
+      docker compose -f docker-compose.dev.yml up -d"
+
+deploy-staging:
+  stage: deploy
+  variables:
+    GIT_STRATEGY: none
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_REF_NAME == "staging" && $GITLAB_USER_LOGIN == "thienvu"'
+  script:
+    - ssh -oStrictHostKeyChecking=no $USER_BASTION@$BASTION_SERVER "
+      cd $DEVOPS_FOLDER_STG &&
+      git pull origin main &&
+      sed -i 's/vvthienregistry.azurecr.io\/emark-fe-stg:latest/vvthienregistry.azurecr.io\/emark-fe-stg:'"$CI_COMMIT_SHA"'/g' emark-fe-deployment.yaml &&
+      kubectl -n staging apply -f emark-fe-deployment.yaml &&
+      git stash save"
+
+deploy-production:
+  stage: deploy
+  variables:
+    GIT_STRATEGY: none
+  when: manual
+  rules:
+    - if: '$CI_COMMIT_TAG && $CI_COMMIT_TAG_MESSAGE == "main" && $GITLAB_USER_LOGIN == "thienvu"'
+  script:
+    - ssh -oStrictHostKeyChecking=no $USER_BASTION@$BASTION_SERVER "
+      cd $DEVOPS_FOLDER_PRD &&
+      git pull origin main &&
+      sed -i 's/vvthienregistry.azurecr.io\/emark-fe-prd:latest/vvthienregistry.azurecr.io\/emark-fe-prd:'"$CI_COMMIT_TAG"'/g' emark-fe-deployment.yaml &&
+      kubectl -n production apply -f emark-fe-deployment.yaml &&
+      git stash save"
+

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: emark-be-deployment-stg
+  namespace: staging
+  labels:
+    app: emark-be
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: emark-be
+  template:
+    metadata:
+      labels:
+        app: emark-be
+    spec:
+      containers:
+      - name: emark-be
+        image: 
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8081
+          name: emark-be-port
+        envFrom:
+        - configMapRef:
+            name: emark-configmap
+        - secretRef:
+            name: app-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "64m"
+          limits:
+            memory: "750Mi"
+            cpu: "250m"
+        volumeMounts:
+        - name: secrets-store01-inline
+          mountPath: "/mnt/secrets-store"
+          readOnly: true
+        - name: blob01
+          mountPath: "/app/public/"
+          readOnly: false
+      volumes:
+      - name: secrets-store01-inline
+        csi:
+          driver: secrets-store.csi.k8s.io
+          readOnly: true
+          volumeAttributes:
+            secretProviderClass: "azure-kvname-user-msi"
+      - name: blob01
+        persistentVolumeClaim:
+          claimName: pvc-blob-staging
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: emark-be-service
+  namespace: staging
+spec:
+  selector:
+    app: emark-be
+  ports:
+    - protocol: TCP
+      port: 8081
+      targetPort: emark-be-port

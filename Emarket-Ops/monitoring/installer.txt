@@ -1,0 +1,44 @@
+## Install Prometheus, Grafana on K8s by Heml
+	# create folder contains heml configuration
+	cd /home/sysadmin/kubernetes_installation/
+	mkdir prometheus
+	cd prometheus
+	# declare helm rope and download heml-chart of prometheus
+	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+	helm repo add stable https://charts.helm.sh/stable
+	helm repo update
+	helm search repo prometheus |egrep "stack|CHART"
+	helm pull prometheus-community/kube-prometheus-stack --version 34.9.0 # pull newest version of kube-prometheus-stack
+	tar -xzf kube-prometheus-stack-34.9.0.tgz
+	cp kube-prometheus-stack/values.yaml values-prometheus.yaml
+	# Config values-prometheus.yaml file
+		# config alert manager
+		 ingress:
+		  enabled: true
+		  ingressClassName: nginx
+		  hosts:
+		   - alertmanager.thienvuvan.io.vn
+		  paths:
+		   - /
+		# config prometheus
+		ingress:
+		 enabled: true
+		 ingressClassName: nginx
+		 hosts:
+		  - prometheus.monitor.viettq.com
+		 #hosts: []
+		 paths:
+		  - /
+		# config grafana
+		ingress:   
+		  enabled: true
+		  ingressClassName: nginx
+		  hosts:
+		   - grafana.monitor.viettq.com
+		  #hosts: []
+		  path: /
+	# Run command to install
+	kubectl create ns monitoring
+	helm -n monitoring install prometheus-grafana-stack -f values-prometheus.yaml kube-prometheus-stack
+	# Run command to uninstall
+	helm -n monitoring uninstall prometheus-grafana-stack

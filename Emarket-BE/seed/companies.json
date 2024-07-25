@@ -1,0 +1,28 @@
+[
+  {
+    "id": 1,
+    "name": "E Market BD",
+    "icon": "",
+    "logo": "https://emark.thienvuvan.io.vn/public/company/emarket/logo.png",
+    "code": "emarket",
+    "email": "support@emarket.com",
+    "phoneNo": "+8801710000000",
+    "location": "45/A, New town<br/>Anywhere, Somewhere.<br/>",
+    "header": "Find what you need here",
+    "motive": "emarket is just a software project. It is developed to learn how to build a web application. I've included all these data randomly from the internet from different source.",
+    "details": "Large text here. about the emarket"
+  },
+  {
+    "id": 2,
+    "name": "SUPER MARKET",
+    "icon": "",
+    "logo": "",
+    "code": "supermarket",
+    "email": "support@supermarket.com",
+    "phoneNo": "+8801700000000",
+    "location": "29/D, Sahid Sarak<br/>Farmgate, Dhaka.<br/>",
+    "header": "Find what you need here",
+    "motive": "SUPER MARKET sub title here",
+    "details": "Large text here. about SUPER MARKET"
+  }
+]

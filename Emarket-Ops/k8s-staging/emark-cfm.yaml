@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: emark-configmap
+  namespace: staging
+data:
+  DB_DIALECT: 
+  DB_PORT: 
+  STRIPE_SECRET_KEY: "<sk_test_qwertyuiopzxcvb>"
+  EMARKET_EMAIL: "<emarket.email@gmail.com>"
+  EMARKET_PASSWORD: "<app_password>"
+  CONTAINER_BACKEND_PORT: 
+  CONTAINER_FRONTEND_PORT: 
